@@ -134,5 +134,45 @@ ProxyConfigRemoteProcessProtocol
     reply(info);
 }
 
+- (void)clearDnsCache:(stringReplyBlock)reply {
+    NSString *resp = [ProxySettingTool clearDnsCache];
+    reply(resp);
+}
+
+- (void)updateForwardingOptions:(stringReplyBlock)reply {
+    NSString *resp = [ProxySettingTool updateForwardingOptions];
+    reply(resp);
+}
+
+- (void)getCurrentDnsSetting:(dictReplyBlock)reply {
+    NSDictionary *info = [ProxySettingTool currentDnsSettings];
+    reply(info);
+}
+
+- (void)restoreProxyWithinfo:(NSDictionary *)dict authData:(NSData *)authData error:(stringReplyBlock)reply {
+    ProxySettingTool *tool = [ProxySettingTool new];
+    NSString *err = [tool setupAuth:authData];
+    if (err != nil) {
+        reply(err);
+        return;
+    }
+    [tool restoreDnsSetting:dict];
+}
+
+
+- (void)setDnsToLocalWithAuthData:(NSData *)authData error:(stringReplyBlock)reply {
+    ProxySettingTool *tool = [ProxySettingTool new];
+    NSString *err = [tool setupAuth:authData];
+    if (err != nil) {
+        reply(err);
+        return;
+    }
+    [tool setLocalDns];
+    reply(nil);
+}
+
+
+
+
 
 @end

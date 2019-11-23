@@ -19,6 +19,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)restoreProxySettint:(NSDictionary *)savedInfo currentPort:(int)port currentSocksPort:(int)socksPort;
 + (NSMutableDictionary<NSString *,NSDictionary *> *)currentProxySettings;
 
++ (NSString *)clearDnsCache;
++ (NSString *)updateForwardingOptions;
++ (NSMutableDictionary<NSString *,NSDictionary *> *)currentDnsSettings;
+- (void)setLocalDns;
+- (void)restoreDnsSetting:(NSDictionary *)savedInfo;
 @end
 
 NS_ASSUME_NONNULL_END

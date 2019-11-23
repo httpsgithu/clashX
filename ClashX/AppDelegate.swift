@@ -349,6 +349,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if WebPortalManager.hasWebProtal {
             WebPortalManager.shared.addWebProtalMenuItem(&statusMenu)
         }
+        TunManager.addTunMenuItem(&experimentalMenu)
         updateExperimentalFeatureStatus()
     }
 

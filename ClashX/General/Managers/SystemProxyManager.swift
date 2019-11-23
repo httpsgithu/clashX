@@ -25,6 +25,8 @@ class SystemProxyManager: NSObject {
         }
     }
 
+    private var savedDnsInfo = [String: Any]()
+
     private var disableRestoreProxy: Bool {
         get {
             return UserDefaults.standard.bool(forKey: "kDisableRestoreProxy")
@@ -93,6 +95,37 @@ class SystemProxyManager: NSObject {
             if let error = error {
                 Logger.log("restoreProxy \(error)", level: .error)
             }
+        })
+    }
+
+    // MARK: - Tun
+
+    @objc func clearDnsCache() {
+        helper()?.clearDnsCache({ resp in
+            Logger.log(resp ?? "clearDnsCache no output")
+        })
+    }
+
+    @objc func updateForwardingOptions() {
+        helper()?.updateForwardingOptions({ resp in
+            Logger.log(resp ?? "updateFordrading no output")
+        })
+    }
+
+    @objc func restoreDnsSetting() {
+        helper()?.restoreProxyWithinfo(savedProxyInfo, authData: authData(), error: { error in
+            Logger.log(error ?? "restoreDnsSetting done")
+        })
+    }
+
+    @objc func setLocalDns() {
+        helper()?.getCurrentDnsSetting({ [weak self] resp in
+            guard let self = self else { return }
+            self.savedDnsInfo = (resp as? [String: Any]) ?? [:]
+            self.helper()?.setDnsToLocalWithAuthData(self.authData(), error: {
+                error in
+                Logger.log(error ?? "setLocalDns done")
+            })
         })
     }
 

@@ -83,10 +83,89 @@
     return info;
 }
 
+
++ (NSMutableDictionary<NSString *,NSDictionary *> *)currentDnsSettings {
+    __block NSMutableDictionary<NSString *,NSDictionary *> *info = [NSMutableDictionary dictionary];
+    SCPreferencesRef ref = SCPreferencesCreate(nil, CFSTR("ClashX"), nil);
+    [ProxySettingTool getDiviceListWithPrefRef:ref devices:^(NSString *key, NSDictionary *dev) {
+        NSDictionary *dnsSettings = dev[(__bridge NSString *)kSCEntNetDNS];
+        info[key] = [dnsSettings copy];
+    }];
+    
+    return info;
+}
+
+- (void)setLocalDns {
+    [self applySCNetworkSettingWithRef:^(SCPreferencesRef ref) {
+        [ProxySettingTool getDiviceListWithPrefRef:ref devices:^(NSString *key, NSDictionary *dev) {
+            NSString *path = [self dnsSettingPathWithInterface:key];
+            
+            NSMutableDictionary *dnsSetting = [NSMutableDictionary dictionary];
+            dnsSetting[(__bridge NSString *)kSCPropNetDNSServerAddresses] = @[@"127.0.0.1"];
+            SCPreferencesPathSetValue(ref,
+                                      (__bridge CFStringRef)path,
+                                      (__bridge CFDictionaryRef)dnsSetting);
+        }];
+    }];
+}
+
+- (void)restoreDnsSetting:(NSDictionary *)savedInfo {
+    [self applySCNetworkSettingWithRef:^(SCPreferencesRef ref) {
+        [ProxySettingTool getDiviceListWithPrefRef:ref devices:^(NSString *key, NSDictionary *info) {
+            NSString *path = [self dnsSettingPathWithInterface:key];
+            NSDictionary *dnsSetting = savedInfo[key];
+            BOOL vaild = NO;
+            if (dnsSetting && [dnsSetting isKindOfClass:[NSDictionary class]]) {
+                NSArray<NSString *> *dnsArr = dnsSetting[(__bridge NSString *)kSCPropNetDNSServerAddresses];
+                if ( [dnsSetting isKindOfClass:[NSArray<NSString *> class]] ){
+                    if (![dnsArr.firstObject isEqualToString:@"127.0.0.1"]) {
+                        vaild = YES;
+                    }
+                }
+            }
+            
+            if (!vaild) {
+                dnsSetting = [NSDictionary dictionary];
+            }
+            
+            SCPreferencesPathSetValue(ref,
+                                      (__bridge CFStringRef)path,
+                                      (__bridge CFDictionaryRef)dnsSetting);
+        }];
+    }];
+}
+
++ (NSString *)clearDnsCache {
+    // killall -HUP mDNSResponder
+    return [self runCommand:@"/usr/bin/killall" args:@[@"-HUP", @"mDNSResponder"]];
+}
+
++ (NSString *)updateForwardingOptions {
+    // sysctl -w net.inet.ip.forwarding=1
+    return [self runCommand:@"/usr/sbin/sysctl" args:@[@"-w", @"net.inet.ip.forwarding=1"]];
+}
+
 // MARK: - Private
 
 - (void)dealloc {
     [self freeAuth];
+}
+
++ (NSString *)runCommand:(NSString *)path args:(NSArray *)args {
+    NSTask *task = [[NSTask alloc] init];
+    [task setLaunchPath:path];
+    [task setArguments:args];
+    
+    NSPipe *pipe = [NSPipe pipe];
+    [task setStandardOutput: pipe];
+
+    NSFileHandle *file = [pipe fileHandleForReading];
+
+    [task launch];
+
+    NSData *data = [file readDataToEndOfFile];
+
+    return [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
 }
 
 
@@ -170,6 +249,13 @@
             (NSString *)kSCEntNetProxies];
 }
 
+- (NSString *)dnsSettingPathWithInterface:(NSString *)interfaceKey {
+    return [NSString stringWithFormat:@"/%@/%@/%@",
+            (NSString *)kSCPrefNetworkServices,
+            interfaceKey,
+            (NSString *)kSCEntNetDNS];
+}
+
 - (void)enableProxySettings:(SCPreferencesRef)prefs
                  interface:(NSString *)interfaceKey
                       port:(int) port
@@ -221,6 +307,7 @@
     CFRelease(ref);
 }
 
+// MARK: - AUTH
 - (AuthorizationFlags)authFlags {
     AuthorizationFlags authFlags = kAuthorizationFlagDefaults
     | kAuthorizationFlagExtendRights

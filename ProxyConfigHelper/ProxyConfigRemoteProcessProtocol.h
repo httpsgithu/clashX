@@ -31,4 +31,15 @@ typedef void(^dictReplyBlock)(NSDictionary *);
                               error:(stringReplyBlock)reply;
 
 - (void)getCurrentProxySetting:(dictReplyBlock)reply;
+
+
+- (void)clearDnsCache:(stringReplyBlock)reply;
+- (void)updateForwardingOptions:(stringReplyBlock)reply;
+
+- (void)getCurrentDnsSetting:(dictReplyBlock)reply;
+- (void)setDnsToLocalWithAuthData:(NSData *)authData
+                            error:(stringReplyBlock)reply;
+- (void)restoreProxyWithinfo:(NSDictionary *)dict
+                    authData:(NSData *)authData
+                       error:(stringReplyBlock)reply;
 @end
